@@ -1,24 +1,22 @@
 ---
 name: next
-description: Recommend what to work on right now based on the GTD docs — priorities, staleness, quick wins, and whatever the user says about their time and energy. Use when the user asks "what should I work on", "what's next", or seems unsure where to start.
+description: Recommend what to work on right now from the GTD Board — ⭐ priorities, due dates, staleness, quick wins, and the user's stated time/energy. Use when the user asks "what should I work on" or seems unsure where to start.
 ---
 
 # What's next
 
-Goal: one clear recommendation in seconds. This skill is **read-only** — it never
-reorganizes the docs (completions get recorded per CLAUDE.md when the user reports them).
+Goal: one clear recommendation in seconds. **Read-only** — no Board rebuild.
 
 ## Steps
 
-1. Read `GTD Next Actions` (starred items first), `GTD Projects`, and `GTD Waiting On`.
-2. If the user stated constraints ("I have 30 minutes", "I'm fried"), factor them in. Otherwise don't interrogate — recommend first, adjust if they push back.
-3. Pick using this order: starred priority → unblocks other people or projects → important and going stale → quick win to build momentum.
+1. Read the Board: Next Actions (⭐ first), Today, Projects, Waiting On, Preferences.
+2. Stated constraints ("30 minutes", "fried") → factor in; otherwise recommend first, adjust on pushback.
+3. Pick by: ⭐ priority → due today → unblocks others → important-and-stale → quick momentum win.
 
 ## Output
 
-- **One primary pick**, with a one-sentence why.
-- Two alternates, one line each (e.g. a low-energy option and a quick win).
-- If the starred priorities are empty or clearly stale, say so and suggest `/review`.
-- If everything meaningful is blocked, point at the most valuable nudge in `GTD Waiting On` instead.
+- One primary pick with a one-sentence why; two one-line alternates.
+- ⭐ set empty or stale → say so, suggest /review.
+- Everything blocked → point at the most valuable Waiting On nudge.
 
-Keep the whole reply under ~10 lines. The user asked what to do, not for a report.
+Under ~10 lines total.

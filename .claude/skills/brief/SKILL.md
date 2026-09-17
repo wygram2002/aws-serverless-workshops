@@ -1,6 +1,6 @@
 ---
 name: brief
-description: Daily morning brief — start the user's day with a snapshot of priorities, follow-ups due, and yesterday's wins, then set 1–3 intentions for today (written to the GTD Today doc). Use when the user starts their day, says good morning, asks what today looks like, or invokes /brief.
+description: Daily morning brief — snapshot of priorities, follow-ups due, and yesterday's wins from the GTD Board, then set 1–3 intentions for today (updates the Today tab). Use when the user starts their day, says good morning, or asks what today looks like.
 ---
 
 # Daily brief
@@ -9,19 +9,15 @@ Goal: the user knows what today is for, in under two minutes. Snappy, not a repo
 
 ## Steps
 
-1. **Read state**: `GTD Today`, `GTD Log`, `GTD Next Actions`, `GTD Waiting On`, `GTD Inbox`.
-2. **Check the seams.** If `GTD Today` still holds a previous date's intentions, yesterday's shutdown didn't run — reconcile quickly (done → log it, undone → ask: carry or drop) before briefing. Pick up "First move tomorrow" if the last log entry recorded one.
-3. **Brief, in this order, compact:**
-   - Yesterday's wins — one line from `GTD Log` (skip if nothing).
-   - The starred top-3 from `GTD Next Actions`.
-   - Waiting-on items due or overdue for follow-up today.
-   - Inbox count if above zero — offer `/process`, don't force it.
-4. **Set intentions.** Propose 1–3 intentions for today (drawn from the starred items, due follow-ups, and any recorded first move) and ask the user to confirm or swap. An intention that isn't in the system yet gets added to `GTD Next Actions` too.
-5. **Write `GTD Today`** (full replace per CLAUDE.md's edit pattern): today's date as a heading and the intentions as `- [ ]` lines. One write per affected doc.
-6. **Close** by echoing the intentions, one line each, plus one sentence of momentum. No pep talk.
+1. **Read the Board** (all tabs; Preferences first — follow it). Compute today's real weekday with `date`.
+2. **Check the seams**: unreconciled Today rows from a previous day → reconcile fast (done → Log, undone → carry or drop). Unprocessed Comms rows → handle them first.
+3. **Brief, compact**: yesterday's wins (one line from Log) · the ⭐ items · Waiting On rows due today · Inbox count if > 0 (offer /process).
+4. **Set intentions**: propose 1–3 for today (from ⭐, due items, any recorded first move); confirm or swap with the user. Include the user's standing daily blocks (exercise, Jiu-Jitsu, me-time) per Preferences.
+5. **One Board rebuild**: refresh the Today tab (and anything else touched), per CLAUDE.md's edit pattern.
+6. **Close**: echo the intentions, one line each. No pep talk.
 
 ## Rules
 
-- Maximum 3 intentions. If the user lists six, ask which three matter — the rest stay in `GTD Next Actions` and are not failures.
-- No project walks or priority overhauls here; that's `/review`. If the starred priorities look empty or stale, say so once and suggest scheduling one.
-- Anything the user mentions in passing ("oh, and I need to…") gets captured to the inbox as usual.
+- Max 3 intentions; the rest stay in Next Actions and are not failures.
+- No project walks or priority overhauls — that's /review.
+- Anything mentioned in passing gets captured to Inbox as usual.

@@ -1,33 +1,29 @@
 ---
 name: process
-description: Process/clarify the GTD Inbox doc to empty — decide every item into next actions, projects, waiting-on, someday, or trash. Use when the user asks to process, clarify, organize, triage, or clean up the inbox, or accepts that suggestion after a capture.
+description: Process/clarify the Inbox tab of the GTD Board to empty — decide every row into Next Actions, Projects, Waiting On, Someday, or drop it. Use when the user asks to process, clarify, organize, or triage, or accepts that suggestion after a capture.
 ---
 
 # Process the inbox
 
-Goal: inbox to zero. Work top-down (oldest first), one decision per item, no skipping.
-An item may only leave the inbox by landing somewhere deliberate.
+Goal: Inbox tab to zero. Oldest first, one decision per row, no skipping.
 
-## The decision, per item
+## The decision, per row
 
-**Is it actionable?**
+**Not actionable?** Worthless → drop (list every drop in the summary for veto).
+Might matter later → `Someday`. Pure reference info → ask the user once where to keep it.
 
-- **No, and worthless** → drop it. List every drop in the closing summary so the user can veto.
-- **No, but might matter later** → `GTD Someday`.
-- **No, but it's information worth keeping** → if a `GTD Reference` doc exists, file it there; otherwise ask the user once whether to create it.
+**Actionable?**
+- **Multi-step** → ensure the project exists in `Projects` (with a one-line Outcome), put the first concrete action in `Next Actions` with the Project column set.
+- **Blocked on someone** → `Waiting On` (who, what, since).
+- **Single step** → `Next Actions`, verb-first, with Added date; set Priority/Due if known.
+- **Claude can finish it in minutes** → still file it; collect these and offer once at the end. Do them only on a yes.
 
-**Yes, it's actionable:**
+## Ambiguity
 
-- **More than one step** → make sure the project exists in `GTD Projects` (create it with a one-line **Outcome** — what "done" looks like), and put the first concrete action into `GTD Next Actions` tagged `(Project: Name)`.
-- **Blocked on someone or something else** → `GTD Waiting On` with who, what, and since-date.
-- **One step, doable** → `GTD Next Actions`, rewritten as a verb-first concrete action ("Website is broken" → "File hosting ticket about the broken website"), with `— added YYYY-MM-DD`.
-- **Something Claude can finish right now in a couple of minutes** (a lookup, a short draft, a calculation) → still file it, but collect these and offer once at the end: "I can knock out these N right now — want me to?" Do them only on a yes.
-
-## Handling ambiguity
-
-Decide the obvious ones yourself. For genuinely unclear items, batch the questions into **one** message, each with your best-guess default ("I'll treat X as a project unless you say otherwise") — never one question per item.
+Decide the obvious yourself. Batch unclear ones into ONE message with best-guess
+defaults (max 3 questions at a time, per Preferences).
 
 ## Finish
 
-1. Make every decision first, then write each affected doc exactly once (the emptied `GTD Inbox` included), using the edit pattern from CLAUDE.md. Delete date headings that end up empty.
-2. Summarize: each item → where it went, one line each. Call out new projects created and anything dropped.
+1. All decisions first, then ONE Board rebuild (emptied Inbox included), per CLAUDE.md's edit pattern — after re-reading the live Board so user cell-edits survive.
+2. Summarize: item → destination, one line each; call out new projects and drops.

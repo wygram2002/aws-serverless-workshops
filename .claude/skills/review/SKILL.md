@@ -1,27 +1,26 @@
 ---
 name: review
-description: The GTD weekly review — walk projects, next actions, waiting-on and someday with the user; prune stale items; ensure every project has a next action; set the top-3 priorities for the week. Use when the user asks for the weekly review, weekly planning, a deep check-in, or "where do things stand".
+description: The GTD weekly review over the GTD Board — walk projects, next actions, waiting-on and someday with the user; prune stale rows; ensure every project has a next action; set the ⭐ top-3 for the week. Use for weekly review/planning or "where do things stand".
 ---
 
 # Weekly review
 
-Goal: a trustworthy system and a clear top-3 for the week. This is a conversation, not
-a report — ask direct questions in small batches, keep momentum, aim for ~10 minutes
-total. Don't lecture about GTD theory. The daily bookends (`/brief`, `/shutdown`) handle
-day-to-day upkeep; this is the weekly deep pass — don't duplicate them, go deeper.
+Goal: a trustworthy Board and a clear ⭐ top-3 for the week. A conversation, not a
+report — small batches of direct questions (max 3 at a time), ~10 minutes. The daily
+bookends handle upkeep; this is the deep pass.
 
 ## Steps, in order
 
-0. Read all seven GTD docs. If `GTD Inbox` isn't empty, run the `/process` flow first — a review on top of a full inbox is a lie. Check `GTD Log` for when the last review was and mention it ("last review was 12 days ago").
-1. **Done sweep.** Daily shutdowns should have kept `GTD Log` current — skim it, celebrate the week's wins in one line, and ask only about completions that slipped through.
-2. **Projects walk** (`GTD Projects`). For each Active project ask, tersely: still active? Does it have at least one next action in `GTD Next Actions`? If not, define one *now* with the user. A project with no movement across two consecutive reviews gets challenged: on hold, someday, or kill?
-3. **Waiting-on sweep** (`GTD Waiting On`). Anything arrived? Anything older than ~7 days or past its follow-up date → propose converting to a next action ("Nudge Sam about the agenda").
-4. **Next-actions prune** (`GTD Next Actions`). Remove dead items. Anything sitting ~2 weeks untouched: still real? If it keeps not happening, ask why — wrong action, too big (make it smaller), or not actually important (someday or drop).
-5. **Someday scan** (`GTD Someday`). Quick pass: anything worth promoting? Don't belabor this.
-6. **Set priorities.** Ask what matters most this week, propose a top 3 from the walk, and on agreement star (⭐) exactly those items at the top of `GTD Next Actions`, unstarring the previous set.
+0. Read the whole Board. Inbox not empty → run /process first. Note when the last review was (Log) and mention it.
+1. **Done sweep** — Log should be current from shutdowns; celebrate the week's wins in one line, catch stragglers.
+2. **Projects walk** — each active project: still active? Has a next action? (Define one NOW if not.) No movement across two reviews → challenge: on hold, someday, or kill.
+3. **Waiting On sweep** — arrived? stale (>7 days / past follow-up) → propose a nudge action.
+4. **Next Actions prune** — dead rows out; ~2 weeks untouched → still real? Wrong action, too big, or not important?
+5. **Someday scan** — quick: promote anything?
+6. **Set priorities** — what matters most this week; agree the top 3; set ⭐ on exactly those rows.
 
 ## Finish
 
-1. Append a review record to `GTD Log` under today's date (counts: active projects, next actions, waiting-on; the new top 3).
-2. Apply everything with one write per affected doc (per CLAUDE.md's edit pattern).
-3. Close with a snapshot the user can act on immediately: the top 3, anything newly stale, and the single thing you'd start with.
+1. Log row with the review record (counts + new top 3).
+2. ONE Board rebuild with everything (read live Board first).
+3. Close with an actionable snapshot: top 3, newly stale items, the single thing to start with.
