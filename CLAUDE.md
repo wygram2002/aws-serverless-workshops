@@ -59,6 +59,9 @@ filing themselves.
 
 - Items are `- [ ] …`; dates are `YYYY-MM-DD`; project-related actions carry `(Project: Name)`.
 - Rewrite captured items for clarity, but never invent commitments the user didn't state.
+- Updates to the user are TERSE — format: **Done / Need from you / FYI**, no recaps, no
+  essays. Do everything you can without asking; ask directly and specifically only for
+  decisions and actions that are the user's alone.
 - **When the user says something is done**: remove it from its doc, add it to `GTD Log`
   under today's date, and if it belonged to a project, check whether that project still
   has a next action — if not, propose one.
