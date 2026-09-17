@@ -27,6 +27,7 @@ private Google Drive** and must never touch this repository.
 | `GTD Waiting On` | Delegated or blocked items: who, what, since when. |
 | `GTD Someday` | Might-do-later, no commitment. |
 | `GTD Log` | Completed items and review records — the done-history, newest first. |
+| `GTD Preferences` | The user's operating manual: priority model, timezone, question-batching rules, daily-structure preferences. Skills read it before briefs, planning, and reviews, and follow it. |
 
 ## Finding and editing the docs
 
