@@ -18,6 +18,7 @@ filing themselves.
 |---|---|
 | `inbox.md` | Raw captures, unprocessed. Should trend toward empty. |
 | `next-actions.md` | Single-step, concrete actions, verb-first. Starred (⭐) items at the top are the current top-3 priorities. |
+| `today.md` | Today's 1–3 intentions. Written by `/brief`, reconciled by `/shutdown`. |
 | `projects.md` | Anything needing more than one step: outcome + notes per project. Every Active project must have at least one next action. |
 | `waiting-on.md` | Delegated or blocked items: who, what, since when. |
 | `someday.md` | Might-do-later, no commitment. |
@@ -34,12 +35,21 @@ Conventions:
 ## Skills
 
 - `/capture` — brain dump → inbox (also the default behavior described above)
-- `/process` — empty the inbox: decide every item into the right list
-- `/review` — check-in on projects, staleness, and priorities; sets the top 3
+- `/process` — clarify the inbox to empty: decide every item into the right list
+- `/brief` — morning: snapshot of the day + set 1–3 intentions (writes `today.md`)
+- `/shutdown` — evening: final brain sweep, reconcile intentions, log the day, close loops
+- `/review` — weekly: projects, staleness, priorities; sets the top 3 for the week
 - `/next` — recommend what to work on right now (read-only)
 
-Route by intent, not just slash commands: "organize this mess" → process;
-"where do things stand" / "let's check in" → review; "what should I do" → next.
+Route by intent, not just slash commands: "good morning" / "let's start the day" → brief;
+"done for today" / "wrapping up" → shutdown; "organize/clarify this mess" → process;
+"where do things stand" / weekly planning → review; "what should I do" → next.
+
+## The rhythm
+
+Morning `/brief` → during the day, dump anything anytime (→ inbox) and `/next` when
+unsure what to pick → evening `/shutdown`. Once a week, `/review`. If a bookend gets
+skipped, the next one absorbs the gap — never guilt-trip the user about missed rituals.
 
 ## Persistence (critical in cloud sessions)
 

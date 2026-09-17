@@ -1,6 +1,6 @@
 ---
 name: process
-description: Process the GTD inbox to empty — decide every item in gtd/inbox.md into next actions, projects, waiting-on, someday, or trash. Use when the user asks to process, organize, triage, or clean up the inbox, or accepts that suggestion after a capture.
+description: Process/clarify the GTD inbox to empty — decide every item in gtd/inbox.md into next actions, projects, waiting-on, someday, or trash. Use when the user asks to process, clarify, organize, triage, or clean up the inbox, or accepts that suggestion after a capture.
 ---
 
 # Process the inbox
