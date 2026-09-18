@@ -19,9 +19,13 @@ Spreadsheet in the user's private Drive** and must never touch this repository.
 
 One Google Sheet in the user's "GTD" Drive folder, tabs in this order:
 
-| Tab | Columns | Purpose |
+**Every tab's last column is `Your comment`** — the user's inbox-to-Claude for that
+specific row. That column is the point: a comment sitting next to an item says which
+item it is about, which a separate tab cannot.
+
+| Tab | Columns (+ `Your comment` last on every tab) | Purpose |
 |---|---|---|
-| `Comms` | Date, Your message, Claude's response | The user writes instructions/updates here; empty response = not yet processed. |
+| `Comms` | Date, Your message, Claude's response | General messages that belong to no single row. |
 | `Today` | Day, Item, Status | Today's intentions + the current week plan. |
 | `Next Actions` | ⭐, Action, Project, Priority, Due, Added, Notes | Verb-first single steps. ⭐ marks the top-3. |
 | `Projects` | Priority, Project, Outcome, Notes/status | P0/P1 labels; every active project needs a next action. |
@@ -40,22 +44,36 @@ One Google Sheet in the user's "GTD" Drive folder, tabs in this order:
 - **Edit** — the connector cannot modify content in place, so every edit is a full
   replace: (1) **read the current Board first, every time** — the user types directly
   into cells (Comms especially) and their edits MUST survive; (2) rebuild the complete
-  workbook as .xlsx with python3/openpyxl in the sandbox (all 9 tabs); (3) base64 it and
-  `create_file` with title "GTD Board", parentId = the GTD folder, contentMimeType
+  workbook as .xlsx with `tools/gtd_xlsx.py` in the sandbox (all 9 tabs — it keeps the
+  payload small, which is the difference between an upload that lands and one that does
+  not); (3) base64 it and `create_file` with title "GTD Board", parentId = the GTD
+  folder, contentMimeType
   `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (Drive converts it
   to a native Sheet); (4) immediately `trash_file` the old fileId. An
-  "invalid argument" error means the base64 paste got corrupted — regenerate and retry once.
+  "invalid argument" or "not a valid base64 string" error means the payload got corrupted
+  in transcription — regenerate and retry once. "Invalid conversion requested" means the
+  .xlsx is malformed for Google's converter (it requires an `xl/styles.xml` part).
+- **Verify after every write**: re-read the new file and confirm all 9 tabs came back
+  before trashing the old one.
 - **Batch**: one rebuild per ritual — make all decisions first, write once.
 - The file ID changes on every edit, so the stable entry point is the **GTD folder**,
   never a bookmarked direct link. Tell the user this if they mention a dead link.
 
 ## Comms protocol (user → Claude via the Board)
 
-A row in `Comms` with a filled "Your message" and an empty "Claude's response" is a
-new instruction from the user. Process it per these rules (update tabs, calendar,
-etc.), then write a short response into its "Claude's response" cell in the same
-rebuild. An hourly Routine (07:00–23:00 PT) checks this tab; a quiet check with no
-new rows ends silently — no chat message, no writes.
+Two channels, both checked by an hourly Routine (07:00–23:00 PT):
+
+1. **Per-row comments (primary).** Any non-empty `Your comment` cell on any tab is an
+   instruction about that row. Do what it says — reword, reschedule, reprioritise,
+   mark done, delete, add a sub-action — then **clear the cell** in the same rebuild
+   and record the outcome where it belongs (the row's Notes, or a `Log` row if the
+   item is done). A cleared cell is the receipt: anything still filled is unhandled.
+2. **`Comms` tab (general).** A row with a filled "Your message" and an empty
+   "Claude's response" is a new instruction that belongs to no single row. Process it,
+   then write a short response into its "Claude's response" cell in the same rebuild.
+
+Sweep every tab's comment column, not just `Comms`. A quiet check — no filled comment
+cells, no new `Comms` rows — ends silently: no chat message, no writes.
 
 ## The one behavior that matters most
 
@@ -92,7 +110,8 @@ Route by intent: "good morning" → brief; "done for today" → shutdown;
 ## The rhythm
 
 Morning `/brief` → dump anything anytime (→ Inbox) and `/next` when unsure → evening
-`/shutdown`. Weekly `/review`. Comms tab + hourly Routine cover asynchronous updates.
+`/shutdown`. Weekly `/review`. Row comments + Comms tab + the hourly Routine cover
+asynchronous updates.
 If a bookend gets skipped, the next one absorbs the gap — never guilt-trip the user.
 
 ## This repository
