@@ -53,8 +53,10 @@ item it is about, which a separate tab cannot.
   "invalid argument" or "not a valid base64 string" error means the payload got corrupted
   in transcription — regenerate and retry once. "Invalid conversion requested" means the
   .xlsx is malformed for Google's converter (it requires an `xl/styles.xml` part).
-- **Verify after every write**: re-read the new file and confirm all 9 tabs came back
-  before trashing the old one.
+- **Verify after every write**: re-read the new file and spot-check the tabs you
+  changed before trashing the old one. `read_file_content` TRUNCATES — it returns
+  roughly 8 tables, so a missing first or last tab is usually the reader, not lost
+  data. Never rebuild a tab just because it did not come back in a read.
 - **Batch**: one rebuild per ritual — make all decisions first, write once.
 - The file ID changes on every edit, so the stable entry point is the **GTD folder**,
   never a bookmarked direct link. Tell the user this if they mention a dead link.
