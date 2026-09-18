@@ -14,23 +14,22 @@ from xml.sax.saxutils import escape
 
 
 def sheet_xml(rows):
+    # No r= attributes on <row>/<c>: OOXML allows this as long as rows and
+    # cells appear in strict top-to-bottom, left-to-right order with no gaps,
+    # which this writer guarantees by emitting one <c> per column (a bare
+    # <c/> for blanks) instead of skipping empties. Dropping the coordinates
+    # is what keeps the base64 payload short enough to transcribe reliably
+    # into create_file — see the module docstring.
     out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
            '<sheetData>']
-    for r_i, row in enumerate(rows, 1):
-        out.append(f'<row r="{r_i}">')
-        for c_i, val in enumerate(row):
+    for row in rows:
+        out.append('<row>')
+        for val in row:
             if val is None or val == "":
-                continue
-            col = ""
-            n = c_i
-            while True:
-                col = chr(65 + n % 26) + col
-                n = n // 26 - 1
-                if n < 0:
-                    break
-            out.append(f'<c r="{col}{r_i}" t="inlineStr"><is><t>'
-                       f'{escape(str(val))}</t></is></c>')
+                out.append('<c/>')
+            else:
+                out.append(f'<c t="inlineStr"><is><t>{escape(str(val))}</t></is></c>')
         out.append('</row>')
     out.append('</sheetData></worksheet>')
     return "".join(out)
