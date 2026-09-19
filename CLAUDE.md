@@ -2,40 +2,39 @@
 
 This repository is the **engine** of the user's personal task-management system
 (GTD-style), operated through Claude Code. The engine — this file and the skills in
-`.claude/skills/` — is generic and public. **All personal data lives in a private
-Notion workspace** and must never touch this repository.
+`.claude/skills/` — is generic and public. **All personal data lives in one Google
+Spreadsheet in the user's private Drive** and must never touch this repository.
 
 ## Privacy rule (absolute)
 
 - This repo is PUBLIC. Never write task content, names, or any personal information
   into this repository: not in files, branches, commit messages, or anything pushed.
-- All data lives in the "GTD Board" page in Notion, accessed only through the Notion
-  tools (`mcp__Notion__*`). If those tools are unavailable, STOP and ask the user to
-  attach the Notion connector — never fall back to storing data in the repo or the
-  container filesystem.
-- A frozen copy of the pre-Notion data still exists in a Google Sheet in the user's
-  private Drive (also titled "GTD Board"). It is a legacy snapshot, not live data:
-  never write to it, never trash it, and don't treat anything in it as current.
-- Never share the Notion Board or the Drive Sheet with anyone; both stay private to
-  the user's account.
+- All data lives in the "GTD Board" spreadsheet, accessed only through the Google
+  Drive tools (`mcp__Google_Drive__*`). If those tools are unavailable, STOP and ask
+  the user to attach the Google Drive connector — never fall back to storing data in
+  the repo or the container filesystem.
+- A Notion version of the Board exists from a trial migration and is kept as a frozen
+  mirror — this Sheet is the live one again. Never write to the Notion Board, never
+  delete it, and don't treat anything in it as current.
+- Never call `share_file` on the Board (Sheet or Notion); both stay private to the
+  user's account.
 
-## The data: the "GTD Board" in Notion
+## The data: the "GTD Board" spreadsheet
 
-A private Notion page holding 9 linked databases (what used to be spreadsheet tabs —
-this file keeps calling them "tabs," same concept), in this order:
+One Google Sheet in the user's "GTD" Drive folder, tabs in this order:
 
-**Every tab except `Comms` has `Your comment` then `History` as its last two
-properties** — `Your comment` is the user's inbox-to-Claude for that specific row;
-`History` is the archive of past comments once handled. A comment sitting next to an
-item says which item it is about, which a separate database cannot. `Comms` doesn't
-carry the pair: its `Your message`/`Claude's response` columns already are that
-channel, permanently — see the Comms protocol below.
+**Every tab's last two columns are `Your comment` then `History`, except `Comms`** —
+`Your comment` is the user's inbox-to-Claude for that specific row; `History` is the
+archive of past comments once handled. A comment sitting next to an item says which
+item it is about, which a separate tab cannot. `Comms` doesn't carry the pair: its
+`Your message`/`Claude's response` columns already are that channel, permanently —
+see the Comms protocol below.
 
-| Tab | Properties (+ `Your comment`, `History` last on every tab except Comms) | Purpose |
+| Tab | Columns (+ `Your comment`, `History` last, except Comms) | Purpose |
 |---|---|---|
 | `Comms` | Date, Your message, Claude's response | General messages that belong to no single row. |
 | `Today` | Day, Item, Status | Today's intentions + the current week plan. |
-| `Next Actions` | Star, Action, Project (relation → Projects), Priority, Due, Added, Notes, Done | Verb-first single steps. Star marks the top-3; Done marks it finished. |
+| `Next Actions` | ⭐, Action, Project, Priority, Due, Added, Notes, Done | Verb-first single steps. ⭐ marks the top-3; Done marks it finished. |
 | `Projects` | Priority, Project, Outcome, Due, Notes/status | P0/P1 labels; every active project needs a next action. |
 | `Waiting On` | Who/what, Waiting for, Since, Follow-up/notes | Delegated or blocked. |
 | `Inbox` | Date, Raw capture | Unprocessed captures; trend toward empty. |
@@ -45,52 +44,49 @@ channel, permanently — see the Comms protocol below.
 
 ## Reading and editing the Board
 
-- **Find it**: `notion-search` for a page titled "GTD Board", or fetch the link the
-  user has bookmarked — a Notion page keeps a stable URL forever, so unlike the old
-  Sheet it's safe to bookmark directly.
-- **Read**: `notion-fetch` the page for the list of databases, then `notion-fetch` or
-  `notion-query-data-sources` a specific database's data-source URL for its rows.
-- **Edit**: a real edit, in place — `notion-update-page` with `update_properties` on
-  the one row (page) that changed. No rebuild, no full-file replace, and no need to
-  re-read the whole Board first the way the old Sheet required: editing one row can't
-  clobber a concurrent edit to a different row. Do re-fetch a row right before editing
-  it if the user might just have touched that exact row (e.g. right after leaving a
-  comment on it).
-- **Schema changes** (new property, new database): `notion-update-data-source`
-  (DDL-style `ADD COLUMN` / `DROP COLUMN` / `RENAME COLUMN` / `ALTER COLUMN`). Never
-  combine a `RENAME` and an `ADD` of the same name in one call — it retypes the
-  original property in place instead of creating a second one, silently discarding
-  any values the new type can't hold.
-- **Relations**: `Next Actions.Project` is a two-way relation to `Projects`, not free
-  text — point it at the project's actual page (search/fetch to find the page if you
-  don't have its ID handy) instead of typing a name, so it can't drift into a second,
-  un-synced list of project names.
-- **Views**: `notion-create-view` / `notion-update-view` for saved filters and
-  groupings (Next Actions already has a "By Project" board view and an "Active" table
-  view).
-- Never share the Board with anyone; it stays private to the user's account.
-
-The frozen Google Sheet, if you ever need historical context: every edit there needed
-a full-workbook rebuild-and-replace (`tools/gtd_xlsx.py`) because the Drive connector
-couldn't modify cells in place — that limitation is why the Board moved to Notion.
-Read it only for history; never write to it.
+- **Find it**: `search_files` `title = 'GTD Board' and mimeType = 'application/vnd.google-apps.spreadsheet'`.
+  Exactly one live copy; on duplicates the newest is truth (verify, trash the older).
+- **Read**: `read_file_content` — tabs come back as consecutive tables IN ORDER,
+  without names; identify each by its header row.
+- **Edit** — the connector cannot modify content in place, so every edit is a full
+  replace: (1) **read the current Board first, every time** — the user types directly
+  into cells (Comms especially) and their edits MUST survive; (2) rebuild the complete
+  workbook as .xlsx with `tools/gtd_xlsx.py` in the sandbox (all 9 tabs — it keeps the
+  payload small, which is the difference between an upload that lands and one that does
+  not); (3) base64 it and `create_file` with title "GTD Board", parentId = the GTD
+  folder, contentMimeType
+  `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (Drive converts it
+  to a native Sheet); (4) immediately `trash_file` the old fileId. An
+  "invalid argument" or "not a valid base64 string" error means the payload got corrupted
+  in transcription — regenerate and retry once. "Invalid conversion requested" means the
+  .xlsx is malformed for Google's converter (it requires an `xl/styles.xml` part). The
+  `create_file` response's reported file size is unreliable for a converted type (it can
+  read back tiny even when the content landed fine) — trust a `read_file_content`
+  verification pass over that number.
+- **Verify after every write**: re-read the new file and spot-check the tabs you
+  changed before trashing the old one. `read_file_content` TRUNCATES — it returns
+  roughly 8 tables, so a missing first or last tab is usually the reader, not lost
+  data. Never rebuild a tab just because it did not come back in a read.
+- **Batch**: one rebuild per ritual — make all decisions first, write once.
+- The file ID changes on every edit, so the stable entry point is the **GTD folder**,
+  never a bookmarked direct link. Tell the user this if they mention a dead link.
 
 ## Comms protocol (user → Claude via the Board)
 
 Two channels, both checked by an hourly Routine (07:00–23:00 PT):
 
-1. **Per-row comments (primary).** Any non-empty `Your comment` property on any tab is
-   an instruction about that row. Do what it says — reword, reschedule, reprioritise,
-   mark done, delete, add a sub-action — then **clear the property** and record the
-   outcome where it belongs (the row's Notes, or a `Log` row if the item is done) and
-   archive the exchange into that row's `History` property. A cleared property is the
-   receipt: anything still filled is unhandled.
+1. **Per-row comments (primary).** Any non-empty `Your comment` cell on any tab is an
+   instruction about that row. Do what it says — reword, reschedule, reprioritise,
+   mark done, delete, add a sub-action — then **clear the cell** in the same rebuild
+   and record the outcome where it belongs (the row's Notes, or a `Log` row if the
+   item is done), archiving the exchange into that row's `History` cell. A cleared
+   cell is the receipt: anything still filled is unhandled.
 2. **`Comms` tab (general).** A row with a filled "Your message" and an empty
    "Claude's response" is a new instruction that belongs to no single row. Process it,
-   then write a short response into its "Claude's response" property.
+   then write a short response into its "Claude's response" cell in the same rebuild.
 
-Sweep every tab's comment property, not just `Comms`. A quiet check — no filled
-comment properties, no new `Comms` rows — ends silently: no chat message, no writes.
+Sweep every tab's comment column, not just `Comms`. A quiet check — no filled comment
+cells, no new `Comms` rows — ends silently: no chat message, no writes.
 
 ## The one behavior that matters most
 
