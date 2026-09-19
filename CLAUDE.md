@@ -24,12 +24,14 @@ Notion workspace** and must never touch this repository.
 A private Notion page holding 9 linked databases (what used to be spreadsheet tabs —
 this file keeps calling them "tabs," same concept), in this order:
 
-**Every tab's last two properties are `Your comment` then `History`** — `Your comment`
-is the user's inbox-to-Claude for that specific row; `History` is the archive of past
-comments once handled. A comment sitting next to an item says which item it is about,
-which a separate database cannot.
+**Every tab except `Comms` has `Your comment` then `History` as its last two
+properties** — `Your comment` is the user's inbox-to-Claude for that specific row;
+`History` is the archive of past comments once handled. A comment sitting next to an
+item says which item it is about, which a separate database cannot. `Comms` doesn't
+carry the pair: its `Your message`/`Claude's response` columns already are that
+channel, permanently — see the Comms protocol below.
 
-| Tab | Properties (+ `Your comment`, `History` last on every tab) | Purpose |
+| Tab | Properties (+ `Your comment`, `History` last on every tab except Comms) | Purpose |
 |---|---|---|
 | `Comms` | Date, Your message, Claude's response | General messages that belong to no single row. |
 | `Today` | Day, Item, Status | Today's intentions + the current week plan. |
