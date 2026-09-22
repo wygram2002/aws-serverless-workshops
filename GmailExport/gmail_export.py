@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Export Gmail messages from the last N days (default 14) to a JSON file.
+"""Export Gmail threads with activity in the last N days (default 14) to a JSON file.
+
+Each thread includes every message in the conversation, even ones older than N days.
 
 Usage:
     python gmail_export.py                      # last 14 days -> emails.json
@@ -92,33 +94,58 @@ def parse_message(msg):
     }
 
 
-def fetch_emails(service, days=14, extra_query="", user_id="me", include_spam_trash=False):
-    """Return a list of parsed messages received in the last `days` days."""
+def parse_thread(thread):
+    messages = sorted((parse_message(m) for m in thread.get("messages", [])), key=lambda m: m["date"])
+    participants = []
+    for m in messages:
+        for addr in (m["from"], m["to"], m["cc"]):
+            for a in (addr or "").split(","):
+                a = a.strip()
+                if a and a not in participants:
+                    participants.append(a)
+    last = messages[-1] if messages else {}
+    return {
+        "threadId": thread["id"],
+        "subject": messages[0]["subject"] if messages else None,
+        "participants": participants,
+        "message_count": len(messages),
+        "first_message_date": messages[0]["date"] if messages else None,
+        "last_message_date": last.get("date"),
+        # What a reply needs: threadId plus the last message's Message-ID for In-Reply-To/References.
+        "reply_to_message_id": last.get("id"),
+        "reply_to_rfc822_message_id": last.get("headers", {}).get("Message-ID"),
+        "messages": messages,
+    }
+
+
+def fetch_threads(service, days=14, extra_query="", user_id="me", include_spam_trash=False):
+    """Return every thread with activity in the last `days` days, each with ALL its messages
+    (including ones older than the window), newest thread first."""
     after = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
     query = f"after:{after} {extra_query}".strip()
 
     ids, page_token = [], None
     while True:
-        resp = service.users().messages().list(
+        resp = service.users().threads().list(
             userId=user_id,
             q=query,
             pageToken=page_token,
             maxResults=500,
             includeSpamTrash=include_spam_trash,
         ).execute()
-        ids.extend(m["id"] for m in resp.get("messages", []))
+        ids.extend(t["id"] for t in resp.get("threads", []))
         page_token = resp.get("nextPageToken")
         if not page_token:
             break
 
-    emails = []
-    for i, msg_id in enumerate(ids, 1):
-        msg = service.users().messages().get(userId=user_id, id=msg_id, format="full").execute()
-        emails.append(parse_message(msg))
+    threads = []
+    for i, thread_id in enumerate(ids, 1):
+        thread = service.users().threads().get(userId=user_id, id=thread_id, format="full").execute()
+        threads.append(parse_thread(thread))
         if i % 50 == 0:
-            print(f"  fetched {i}/{len(ids)}")
-    emails.sort(key=lambda e: e["date"], reverse=True)
-    return emails
+            print(f"  fetched {i}/{len(ids)} threads")
+    threads.sort(key=lambda t: t["last_message_date"] or "", reverse=True)
+    return threads
 
 
 def main():
@@ -132,18 +159,19 @@ def main():
     args = parser.parse_args()
 
     service = get_service(args.credentials, args.token)
-    print(f"Fetching emails from the last {args.days} days...")
-    emails = fetch_emails(service, args.days, args.query, include_spam_trash=args.include_spam_trash)
+    print(f"Fetching threads with activity in the last {args.days} days...")
+    threads = fetch_threads(service, args.days, args.query, include_spam_trash=args.include_spam_trash)
 
     result = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "days": args.days,
-        "count": len(emails),
-        "emails": emails,
+        "thread_count": len(threads),
+        "message_count": sum(t["message_count"] for t in threads),
+        "threads": threads,
     }
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
-    print(f"Wrote {len(emails)} emails to {args.out}")
+    print(f"Wrote {len(threads)} threads ({result['message_count']} messages) to {args.out}")
 
 
 if __name__ == "__main__":
