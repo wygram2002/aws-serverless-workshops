@@ -20,6 +20,18 @@ python gmail_export.py --days 7 --out week.json
 python gmail_export.py --query "label:inbox"    # add any Gmail search filter
 ```
 
+## Keeping emails away from the LLM
+
+Create a Gmail label called `no-llm` and put it on anything that must not be shared. Tagged emails never make it into the export.
+
+- **Default (`--exclude-scope thread`):** if any message in a conversation has the label, the whole conversation is left out.
+- **`--exclude-scope message`:** only the tagged messages are left out; the rest of the conversation is still exported.
+- Use other or extra labels with `--exclude-label`, which can be repeated: `--exclude-label no-llm --exclude-label Finance`.
+- If a label doesn't exist in Gmail, the script stops instead of running without it. That way a typo can't switch the protection off.
+- The export doesn't mention that anything was left out. The count is only printed in your terminal.
+
+Everything that isn't tagged **is** shared, so tag before you run the export.
+
 The first run opens a browser to grant read-only access (`gmail.readonly`) and caches the token in `token.json`. Don't commit `credentials.json` or `token.json`.
 
 ## Output shape

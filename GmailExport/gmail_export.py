@@ -2,11 +2,13 @@
 """Export Gmail threads with activity in the last N days (default 14) to a JSON file.
 
 Each thread includes every message in the conversation, even ones older than N days.
+Anything tagged with the Gmail label "no-llm" is never exported (the label must exist).
 
 Usage:
     python gmail_export.py                      # last 14 days -> emails.json
     python gmail_export.py --days 7 --out week.json
     python gmail_export.py --query "from:boss@example.com"
+    python gmail_export.py --exclude-label no-llm --exclude-label Finance
 
 Requires a Google Cloud OAuth client (Desktop app) saved as credentials.json.
 The first run opens a browser for consent and caches the token in token.json.
@@ -24,7 +26,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-HEADERS_TO_KEEP = ("From", "To", "Cc", "Bcc", "Subject", "Date", "Reply-To", "Message-ID")
+DEFAULT_EXCLUDE_LABEL = "no-llm"
+HEADERS_TO_KEEP =("From", "To", "Cc", "Bcc", "Subject", "Date", "Reply-To", "Message-ID")
 
 
 def get_service(credentials_file="credentials.json", token_file="token.json"):
@@ -94,8 +97,34 @@ def parse_message(msg):
     }
 
 
-def parse_thread(thread):
-    messages = sorted((parse_message(m) for m in thread.get("messages", [])), key=lambda m: m["date"])
+def resolve_label_ids(service, names, user_id="me"):
+    """Map label names (case-insensitive) to Gmail label IDs. Fails if any is missing, so a typo
+    can never silently turn the exclusion off."""
+    labels = service.users().labels().list(userId=user_id).execute().get("labels", [])
+    by_name = {l["name"].lower(): l["id"] for l in labels}
+    missing = [n for n in names if n.lower() not in by_name]
+    if missing:
+        raise SystemExit(
+            f"Exclusion label(s) not found in Gmail: {', '.join(missing)}. "
+            "Create them in Gmail first (Settings > Labels), or fix the spelling."
+        )
+    return {by_name[n.lower()] for n in names}
+
+
+def filter_excluded(raw_messages, excluded_label_ids, scope):
+    """Drop messages carrying an excluded label. With scope='thread', one tagged message drops the
+    whole thread. Returns (kept_messages, dropped_count)."""
+    tagged = [m for m in raw_messages if excluded_label_ids & set(m.get("labelIds", []))]
+    if not tagged:
+        return raw_messages, 0
+    if scope == "thread":
+        return [], len(raw_messages)
+    kept = [m for m in raw_messages if m not in tagged]
+    return kept, len(tagged)
+
+
+def parse_thread(thread, raw_messages):
+    messages = sorted((parse_message(m) for m in raw_messages), key=lambda m: m["date"])
     participants = []
     for m in messages:
         for addr in (m["from"], m["to"], m["cc"]):
@@ -118,9 +147,11 @@ def parse_thread(thread):
     }
 
 
-def fetch_threads(service, days=14, extra_query="", user_id="me", include_spam_trash=False):
-    """Return every thread with activity in the last `days` days, each with ALL its messages
-    (including ones older than the window), newest thread first."""
+def fetch_threads(service, days=14, extra_query="", user_id="me", include_spam_trash=False,
+                  excluded_label_ids=frozenset(), exclude_scope="thread"):
+    """Return every thread with activity in the last `days` days, each with all its messages
+    (including ones older than the window), newest thread first. Messages or threads tagged with
+    an excluded label are left out. Returns (threads, dropped_message_count)."""
     after = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
     query = f"after:{after} {extra_query}".strip()
 
@@ -138,14 +169,17 @@ def fetch_threads(service, days=14, extra_query="", user_id="me", include_spam_t
         if not page_token:
             break
 
-    threads = []
+    threads, dropped = [], 0
     for i, thread_id in enumerate(ids, 1):
         thread = service.users().threads().get(userId=user_id, id=thread_id, format="full").execute()
-        threads.append(parse_thread(thread))
+        kept, n = filter_excluded(thread.get("messages", []), excluded_label_ids, exclude_scope)
+        dropped += n
+        if kept:
+            threads.append(parse_thread(thread, kept))
         if i % 50 == 0:
             print(f"  fetched {i}/{len(ids)} threads")
     threads.sort(key=lambda t: t["last_message_date"] or "", reverse=True)
-    return threads
+    return threads, dropped
 
 
 def main():
@@ -156,11 +190,24 @@ def main():
     parser.add_argument("--credentials", default="credentials.json")
     parser.add_argument("--token", default="token.json")
     parser.add_argument("--include-spam-trash", action="store_true")
+    parser.add_argument("--exclude-label", action="append", dest="exclude_labels", metavar="LABEL",
+                        help=f"Never export messages with this Gmail label. Repeatable. "
+                             f"Default: {DEFAULT_EXCLUDE_LABEL}")
+    parser.add_argument("--exclude-scope", choices=("thread", "message"), default="thread",
+                        help="thread (default): one tagged message drops its whole thread. "
+                             "message: drop only the tagged messages.")
     args = parser.parse_args()
+    exclude_labels = args.exclude_labels or [DEFAULT_EXCLUDE_LABEL]
 
     service = get_service(args.credentials, args.token)
-    print(f"Fetching threads with activity in the last {args.days} days...")
-    threads = fetch_threads(service, args.days, args.query, include_spam_trash=args.include_spam_trash)
+    excluded_ids = resolve_label_ids(service, exclude_labels)
+    print(f"Fetching threads with activity in the last {args.days} days "
+          f"(excluding {', '.join(exclude_labels)} by {args.exclude_scope})...")
+    threads, dropped = fetch_threads(service, args.days, args.query,
+                                     include_spam_trash=args.include_spam_trash,
+                                     excluded_label_ids=excluded_ids, exclude_scope=args.exclude_scope)
+    # Only reported locally: the export itself doesn't reveal that anything was withheld.
+    print(f"Left out {dropped} excluded message(s)")
 
     result = {
         "exported_at": datetime.now(timezone.utc).isoformat(),
