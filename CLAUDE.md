@@ -67,6 +67,15 @@ see the Comms protocol below.
   changed before trashing the old one. `read_file_content` TRUNCATES — it returns
   roughly 8 tables, so a missing first or last tab is usually the reader, not lost
   data. Never rebuild a tab just because it did not come back in a read.
+- **A middle tab reading back garbled/blank, or two tabs' tables running together
+  with no fresh header row between them, is not that truncation quirk — that's real
+  data loss in Drive's xlsx→Sheets conversion.** It has happened deterministically
+  for a given payload (same corrupt result on repeat uploads of the same bytes), so
+  retrying the identical upload is unlikely to help. `tools/gtd_xlsx.py` builds on
+  `openpyxl` for exactly this reason — see its docstring before reintroducing a
+  hand-rolled writer. If it recurs, confirm what Drive actually stored (not just
+  what `read_file_content` renders) by downloading the file back via
+  `download_file_content` and inspecting `xl/worksheets/sheetN.xml` directly.
 - **Batch**: one rebuild per ritual — make all decisions first, write once.
 - The file ID changes on every edit, so the stable entry point is the **GTD folder**,
   never a bookmarked direct link. Tell the user this if they mention a dead link.

@@ -1,94 +1,36 @@
 #!/usr/bin/env python3
-"""Minimal multi-tab xlsx builder for the GTD Board.
+"""Multi-tab xlsx builder for the GTD Board.
 
 Reads JSON from stdin: [{"name": str, "rows": [[cell, ...], ...]}, ...]
-Writes a compact .xlsx (inline strings, no theme/styles bloat) to the path in
-argv[1] and prints its base64 length. Purpose: keep the create_file payload
-small enough to transcribe reliably.
+Writes a .xlsx to the path in argv[1] and prints its base64 length.
+
+Built on openpyxl rather than hand-rolled OOXML: an earlier hand-rolled
+minimal writer (coordinate-free rows/cells, no <dimension>/<cols>) produced
+files that Python's zipfile read back correctly but that Google Drive's
+xlsx->Sheets converter would sometimes silently convert into a BLANK sheet
+for one tab (observed on "Today") while every other tab came through fine -
+confirmed by downloading the converted Sheet back out and inspecting its
+worksheet XML directly, not just by eyeballing read_file_content's summary.
+The failure was deterministic for a given payload but the exact trigger in
+the minimal OOXML was never isolated. Producing fully spec-conformant OOXML
+via openpyxl avoids it. Keep using this module rather than reintroducing a
+minimal writer.
 """
 import base64
 import json
 import sys
-import zipfile
-from xml.sax.saxutils import escape
 
-
-def sheet_xml(rows):
-    # No r= attributes on <row>/<c>: OOXML allows this as long as rows and
-    # cells appear in strict top-to-bottom, left-to-right order with no gaps,
-    # which this writer guarantees by emitting one <c> per column (a bare
-    # <c/> for blanks) instead of skipping empties. Dropping the coordinates
-    # is what keeps the base64 payload short enough to transcribe reliably
-    # into create_file — see the module docstring.
-    out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-           '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-           '<sheetData>']
-    for row in rows:
-        out.append('<row>')
-        for val in row:
-            if val is None or val == "":
-                out.append('<c/>')
-            else:
-                out.append(f'<c t="inlineStr"><is><t>{escape(str(val))}</t></is></c>')
-        out.append('</row>')
-    out.append('</sheetData></worksheet>')
-    return "".join(out)
+import openpyxl
 
 
 def build(tabs, path):
-    n = len(tabs)
-    ct = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-          '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-          '<Default Extension="xml" ContentType="application/xml"/>'
-          '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>']
-    for i in range(1, n + 1):
-        ct.append(f'<Override PartName="/xl/worksheets/sheet{i}.xml" '
-                  'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>')
-    ct.append('</Types>')
-
-    root_rels = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                 '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-                 '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
-                 '</Relationships>')
-
-    wb = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-          '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
-          'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>']
-    wb_rels = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-               '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">']
-    for i, tab in enumerate(tabs, 1):
-        wb.append(f'<sheet name="{escape(tab["name"])}" sheetId="{i}" r:id="rId{i}"/>')
-        wb_rels.append(f'<Relationship Id="rId{i}" '
-                       'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
-                       f'Target="worksheets/sheet{i}.xml"/>')
-    wb.append('</sheets></workbook>')
-    wb_rels.append('</Relationships>')
-
-    # Google's xlsx->Sheets converter requires a styles part; declare it.
-    ct.insert(-1, '<Override PartName="/xl/styles.xml" '
-                  'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>')
-    styles = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-              '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-              '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
-              '<fills count="2"><fill><patternFill patternType="none"/></fill>'
-              '<fill><patternFill patternType="gray125"/></fill></fills>'
-              '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
-              '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-              '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
-              '</styleSheet>')
-    wb_rels.insert(-1, f'<Relationship Id="rId{n+1}" '
-                       'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" '
-                       'Target="styles.xml"/>')
-
-    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        z.writestr("[Content_Types].xml", "".join(ct))
-        z.writestr("_rels/.rels", root_rels)
-        z.writestr("xl/workbook.xml", "".join(wb))
-        z.writestr("xl/_rels/workbook.xml.rels", "".join(wb_rels))
-        z.writestr("xl/styles.xml", styles)
-        for i, tab in enumerate(tabs, 1):
-            z.writestr(f"xl/worksheets/sheet{i}.xml", sheet_xml(tab["rows"]))
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+    for tab in tabs:
+        ws = wb.create_sheet(tab["name"])
+        for row in tab["rows"]:
+            ws.append(row)
+    wb.save(path)
 
 
 if __name__ == "__main__":
