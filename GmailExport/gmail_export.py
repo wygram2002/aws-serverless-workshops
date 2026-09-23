@@ -2,7 +2,7 @@
 """Export Gmail threads with activity in the last N days (default 14) to a JSON file.
 
 Each thread includes every message in the conversation, even ones older than N days.
-Anything tagged with the Gmail label "no-llm" is never exported (the label must exist).
+Anything tagged with the Gmail label "no-llm" is never exported.
 
 Usage:
     python gmail_export.py                      # last 14 days -> emails.json
@@ -98,17 +98,14 @@ def parse_message(msg):
 
 
 def resolve_label_ids(service, names, user_id="me"):
-    """Map label names (case-insensitive) to Gmail label IDs. Fails if any is missing, so a typo
-    can never silently turn the exclusion off."""
+    """Map label names (case-insensitive) to Gmail label IDs. Labels that don't exist are skipped
+    with a warning (nothing can carry them yet), so check the spelling if you see one."""
     labels = service.users().labels().list(userId=user_id).execute().get("labels", [])
     by_name = {l["name"].lower(): l["id"] for l in labels}
     missing = [n for n in names if n.lower() not in by_name]
     if missing:
-        raise SystemExit(
-            f"Exclusion label(s) not found in Gmail: {', '.join(missing)}. "
-            "Create them in Gmail first (Settings > Labels), or fix the spelling."
-        )
-    return {by_name[n.lower()] for n in names}
+        print(f"Warning: exclusion label(s) not found in Gmail, skipping: {', '.join(missing)}")
+    return {by_name[n.lower()] for n in names if n.lower() in by_name}
 
 
 def filter_excluded(raw_messages, excluded_label_ids, scope):

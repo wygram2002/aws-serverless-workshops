@@ -27,7 +27,7 @@ Create a Gmail label called `no-llm` and put it on anything that must not be sha
 - **Default (`--exclude-scope thread`):** if any message in a conversation has the label, the whole conversation is left out.
 - **`--exclude-scope message`:** only the tagged messages are left out; the rest of the conversation is still exported.
 - Use other or extra labels with `--exclude-label`, which can be repeated: `--exclude-label no-llm --exclude-label Finance`.
-- If a label doesn't exist in Gmail, the script stops instead of running without it. That way a typo can't switch the protection off.
+- If a label doesn't exist in Gmail, the script prints a warning and carries on without it. Check the spelling if you see that warning.
 - The export doesn't mention that anything was left out. The count is only printed in your terminal.
 
 Everything that isn't tagged **is** shared, so tag before you run the export.
